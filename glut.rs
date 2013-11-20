@@ -64,23 +64,6 @@ pub static HAVE_PRECISE_MOUSE_WHEEL: bool = false;
 #[cfg(target_os="macos")]
 pub static HAVE_PRECISE_MOUSE_WHEEL: bool = true;
 
-// FIXME: remove after rust upgrade. Current version of Rust(0a677b) does not have this. 
-macro_rules! local_data_key(
-    ($name:ident, $func:ty) => (
-        static $name: local_data::Key<$func> = &local_data::Key;
-    );
-)
-
-local_data_key!(display_tls_key, @@fn())
-local_data_key!(keyboard_tls_key, @@fn(key: c_uchar, x: c_int, y: c_int))
-local_data_key!(mouse_tls_key, @@fn(button: c_int, state: c_int, x: c_int, y: c_int))
-local_data_key!(motion_tls_key, @@fn(x: c_int, y: c_int))
-local_data_key!(passive_motion_tls_key, @@fn(x: c_int, y: c_int))
-local_data_key!(timer_tls_key, @~[@fn()])
-local_data_key!(reshape_tls_key, @@fn(x: c_int, y: c_int))
-local_data_key!(idle_tls_key, @@fn())
-local_data_key!(mouse_wheel_tls_key, @@fn(wheel: c_int, direction: c_int, x: c_int, y: c_int))
-
 pub enum State {
     WindowWidth,
     WindowHeight
@@ -142,100 +125,123 @@ pub fn reshape_window(window: Window, width: c_int, height: c_int) {
     }
 }
 
+pub type DisplayFun = ~fn();
+static display_tls_key: local_data::Key<DisplayFun> = &local_data::Key;
 #[fixed_stack_segment] #[inline(never)]
 pub extern "C" fn display_callback() {
-    do local_data::get(display_tls_key) |callback| {
-        (**callback.unwrap())();
+    do local_data::get(display_tls_key) |data| {
+        do data.as_ref().map |&ref cb| {
+            (**cb)();
+        };
     }
 }
 
 #[fixed_stack_segment] #[inline(never)]
-pub fn display_func(callback: @fn()) {
-    local_data::set(display_tls_key, @callback);
+pub fn display_func(callback: DisplayFun) {
+    local_data::set(display_tls_key, callback);
     unsafe {
         glutDisplayFunc(display_callback);
     }
 }
 
+pub type KeyboardFun = ~fn(key: c_uchar, x: c_int, y: c_int);
+static keyboard_tls_key: local_data::Key<KeyboardFun> = &local_data::Key;
 #[fixed_stack_segment] #[inline(never)]
 pub extern "C" fn keyboard_callback(key: c_uchar, x: c_int, y: c_int) {
-    do local_data::get(keyboard_tls_key) |callback| {
-        (**callback.unwrap())(key, x, y);
+    do local_data::get(keyboard_tls_key) |data| {
+        do data.as_ref().map |&ref cb| {
+            (**cb)(key, x, y);
+        };
     }
 }
 
 #[fixed_stack_segment] #[inline(never)]
-pub fn keyboard_func(callback: @fn(key: c_uchar, x: c_int, y: c_int)) {
-    local_data::set(keyboard_tls_key, @callback);
+pub fn keyboard_func(callback: KeyboardFun) {
+    local_data::set(keyboard_tls_key, callback);
     unsafe {
         glutKeyboardFunc(keyboard_callback);
     }
 }
 
+pub type MouseFun = ~fn(button: c_int, state: c_int, x: c_int, y: c_int);
+static mouse_tls_key: local_data::Key<MouseFun> = &local_data::Key;
 #[fixed_stack_segment] #[inline(never)]
 pub extern "C" fn mouse_callback(button: c_int, state: c_int, x: c_int, y: c_int) {
-    do local_data::get(mouse_tls_key) |callback| {
-        (**callback.unwrap())(button, state, x, y);
+    do local_data::get(mouse_tls_key) |data| {
+        do data.as_ref().map |&ref cb| {
+            (**cb)(button, state, x, y);
+        };
     }
 }
 
 #[fixed_stack_segment] #[inline(never)]
-pub fn mouse_func(callback: @fn(button: c_int, state: c_int, x: c_int, y: c_int)) {
-    local_data::set(mouse_tls_key, @callback);
+pub fn mouse_func(callback: MouseFun) {
+    local_data::set(mouse_tls_key, callback);
     unsafe {
         glutMouseFunc(mouse_callback);
     }
 }
 
+pub type MotionFun = ~fn(x: c_int, y: c_int);
+static motion_tls_key: local_data::Key<MotionFun> = &local_data::Key;
 #[fixed_stack_segment] #[inline(never)]
 pub extern "C" fn motion_callback(x: c_int, y: c_int) {
-    do local_data::get(motion_tls_key) |callback| {
-        (**callback.unwrap())(x, y);
+    do local_data::get(motion_tls_key) |data| {
+        do data.as_ref().map |&ref cb| {
+            (**cb)(x, y);
+        };
     }
 }
 
 #[fixed_stack_segment] #[inline(never)]
-pub fn motion_func(callback: @fn(x: c_int, y: c_int)) {
-    local_data::set(motion_tls_key, @callback);
+pub fn motion_func(callback: MotionFun) {
+    local_data::set(motion_tls_key, callback);
     unsafe {
         glutMotionFunc(motion_callback);
     }
 }
 
+pub type PassiveMotionFun = ~fn(x: c_int, y: c_int);
+static passive_motion_tls_key: local_data::Key<PassiveMotionFun> = &local_data::Key;
 #[fixed_stack_segment] #[inline(never)]
 pub extern "C" fn passive_motion_callback(x: c_int, y: c_int) {
-    do local_data::get(passive_motion_tls_key) |callback| {
-        (**callback.unwrap())(x, y);
+    do local_data::get(passive_motion_tls_key) |data| {
+        do data.as_ref().map |&ref cb| {
+            (**cb)(x, y);
+        };
     }
 }
 
 #[fixed_stack_segment] #[inline(never)]
-pub fn passive_motion_func(callback: @fn(x: c_int, y: c_int)) {
-    local_data::set(passive_motion_tls_key, @callback);
+pub fn passive_motion_func(callback: PassiveMotionFun) {
+    local_data::set(passive_motion_tls_key, callback);
     unsafe {
         glutPassiveMotionFunc(passive_motion_callback);
     }
 }
 
+pub type TimerFun = ~[~fn()];
+static timer_tls_key: local_data::Key<TimerFun> = &local_data::Key;
 #[fixed_stack_segment] #[inline(never)]
 pub extern "C" fn timer_callback(index: int) {
-    do local_data::get(timer_tls_key) |callback| {
-        ((**callback.unwrap())[index as uint])();
+    do local_data::get(timer_tls_key) |data| {
+        do data.as_ref().map |&ref cb| {
+            ((**cb)[index as uint])();
+        };
     }
 }
 
 #[fixed_stack_segment] #[inline(never)]
-pub fn timer_func(msecs: u32, callback: @fn()) {
+//FIXME(aydin.kim): we need to get rid of @mut. This is just a workaround for pushing owned fn() to callback array.
+pub fn timer_func(msecs: u32, callback: @mut ~fn()) {
     do local_data::get(timer_tls_key) |data| {
         let callbacks;
-        match data {
-            None => {
-                callbacks = @mut ~[];
-                local_data::set(timer_tls_key, unsafe { cast::transmute(callbacks) });
-            }
-            Some(existing_callbacks) => {
-                callbacks = unsafe { cast::transmute(existing_callbacks) };
-            }
+        if data.is_none() {
+            callbacks = @mut ~[];
+            local_data::set(timer_tls_key, unsafe { cast::transmute(callbacks) });
+        }
+        else {
+            callbacks = unsafe { cast::transmute(data.unwrap())};
         }
         callbacks.push(callback);
         let index = (callbacks.len() - 1) as c_int;
@@ -245,31 +251,39 @@ pub fn timer_func(msecs: u32, callback: @fn()) {
     }
 }
 
+pub type ReshapeFun = ~fn(x: c_int, y: c_int);
+static reshape_tls_key: local_data::Key<ReshapeFun> = &local_data::Key;
 #[fixed_stack_segment] #[inline(never)]
 pub extern "C" fn reshape_callback(width: c_int, height: c_int) {
-    do local_data::get(reshape_tls_key) |callback| {
-        (**callback.unwrap())(width, height);
+    do local_data::get(reshape_tls_key) |data| {
+        do data.as_ref().map |&ref cb| {
+            (**cb)(width, height);
+        };
     }
 }
 
 #[fixed_stack_segment] #[inline(never)]
-pub fn reshape_func(_window: Window, callback: @fn(x: c_int, y: c_int)) {
-    local_data::set(reshape_tls_key, @callback);
+pub fn reshape_func(_window: Window, callback: ReshapeFun) {
+    local_data::set(reshape_tls_key, callback);
     unsafe {
         glutReshapeFunc(reshape_callback);
     }
 }
 
+pub type IdleFun = ~fn();
+static idle_tls_key: local_data::Key<IdleFun> = &local_data::Key;
 #[fixed_stack_segment] #[inline(never)]
 pub extern "C" fn idle_callback() {
-    do local_data::get(idle_tls_key) |callback| {
-        (**callback.unwrap())();
+    do local_data::get(idle_tls_key) |data| {
+        do data.as_ref().map |&ref cb| {
+            (**cb)();
+        };
     }
 }
 
 #[fixed_stack_segment] #[inline(never)]
-pub fn idle_func(callback: @fn()) {
-    local_data::set(idle_tls_key, @callback);
+pub fn idle_func(callback: IdleFun) {
+    local_data::set(idle_tls_key, callback);
     unsafe {
         glutIdleFunc(idle_callback);
     }
@@ -280,18 +294,22 @@ pub fn idle_func(callback: @fn()) {
 // This is not part of the standard, but it's supported by freeglut and our Mac hack.
 #[cfg(target_os="linux")]
 #[cfg(target_os="android")]
+pub type MouseWheelFun = ~fn(wheel: c_int, direction: c_int, x: c_int, y: c_int);
+static mouse_wheel_tls_key: local_data::Key<MouseWheelFun> = &local_data::Key;
 #[fixed_stack_segment] #[inline(never)]
 pub extern "C" fn mouse_wheel_callback(wheel: c_int, direction: c_int, x: c_int, y: c_int) {
-    do local_data::get(mouse_wheel_tls_key) |callback| {
-        (**callback.unwrap())(wheel, direction, x, y);
+    do local_data::get(mouse_wheel_tls_key) |data| {
+        do data.as_ref().map |&ref cb| {
+            (**cb)(wheel, direction, x, y);
+        };
     }
 }
 
 #[cfg(target_os="linux")]
 #[cfg(target_os="android")]
 #[fixed_stack_segment] #[inline(never)]
-pub fn mouse_wheel_func(callback: @fn(wheel: c_int, direction: c_int, x: c_int, y: c_int)) {
-    local_data::set(mouse_wheel_tls_key, @callback);
+pub fn mouse_wheel_func(callback: MouseWheelFun) {
+    local_data::set(mouse_wheel_tls_key, callback);
     unsafe {
         glutMouseWheelFunc(mouse_wheel_callback);
     }
@@ -300,7 +318,7 @@ pub fn mouse_wheel_func(callback: @fn(wheel: c_int, direction: c_int, x: c_int, 
 #[cfg(target_os="macos")]
 #[fixed_stack_segment] #[inline(never)]
 pub fn mouse_wheel_func(callback: @fn(wheel: c_int, direction: c_int, x: c_int, y: c_int)) {
-        local_data::set(mouse_wheel_tls_key, @callback);
+        local_data::set(mouse_wheel_tls_key, callback);
 }
 
 #[cfg(target_os="macos")]
